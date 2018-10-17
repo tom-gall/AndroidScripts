@@ -1,0 +1,54 @@
+# Build Android
+export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
+
+export ANDROID_MANIFEST_URL="https://android.googlesource.com/platform/manifest"
+export MANIFEST_BRANCH="android-cts-8.1_r6"
+export TOOLCHAIN="clang-4679922"
+export PATCHSETS="cts-lkft"
+export LUNCH_TARGET="aosp_arm64-userdebug"
+export nproc=9
+
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -i | --interactive )    interactive=1
+                                ;;
+        -t | --toolchain )      shift
+                                export TOOLCHAIN=$1
+                                ;;
+        -s | --skipdownloads )  skipdownloads=1
+                                ;;
+        -h | --help )           usage
+                                exit
+                                ;;
+        * )                     usage
+                                exit 1
+    esac
+    shift
+done
+
+repo init -u ${ANDROID_MANIFEST_URL} -b ${MANIFEST_BRANCH}
+repo sync -j"$(nproc)" -c
+rm -rf out/
+
+mkdir -p pub
+repo manifest -r -o pub/pinned-manifest.xml
+
+wget https://people.linaro.org:~tom.gall/patches/AddLKFTCTSPlan.patch -O AddLKFTCTSPlan.patch
+patch < AddLKFTCTSPlan.patch
+mv cts-lkft.xml tools/cts-tradefed/res/config/.
+
+if [ -n "$PATCHSETS" ]; then
+    rm -rf android-patchsets
+    git clone --depth=1 https://android-git.linaro.org/git/android-patchsets.git
+    for i in $PATCHSETS; do
+        sh ./android-patchsets/$i
+    done
+fi
+
+
+source build/envsetup.sh
+lunch ${LUNCH_TARGET}
+make -j"$(nproc)" cts
+
+
