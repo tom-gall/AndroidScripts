@@ -72,7 +72,7 @@ fi
 if [ "$skipdownloads" != "1" ]; then
 	git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
 	wget https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
-	unxz gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
+	tar xf gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
 fi
 
 export PATH=${PWD}/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu/bin:${PWD}/linux-x86/${TOOLCHAIN}/bin/:${PATH}
@@ -81,9 +81,10 @@ if echo "${JOB_NAME}" | grep premerge; then
    git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
 fi
 
-if [ "$skipdownloads" = "1" ]; then
+if [ "$skipdownloads" != "1" ]; then
 	mkdir patches
-	wget -r -np -nH http://people.linaro.org/~tom.gall/patches/
+	cd patches
+	wget -r -np -nH -R index.html --cut-dirs=2 http://people.linaro.org/~tom.gall/patches/
 	cd ..
 fi
 
@@ -96,7 +97,7 @@ else
 	
 	if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 		cd configs
-		patch < ../configs/patches/ConfigsTurnOnQTA.patch
+		patch -p1 < ../patches/ConfigsTurnOnQTA.patch
 		cd ..
 	fi
 fi

@@ -78,9 +78,10 @@ fi
 
 export PATH=${PWD}/aarch64-linux-android-4.9/bin/:${PWD}/linux-x86/${TOOLCHAIN}/bin/:${PATH}
 
-if [ "$skipdownloads" = "1" ]; then 
+if [ "$skipdownloads" != "1" ]; then 
         mkdir patches 
-        wget -r -np -nH http://people.linaro.org/~tom.gall/patches/
+	cd patches
+	wget -r -np -nH -R index.html --cut-dirs=2 http://people.linaro.org/~tom.gall/patches/
         cd ..   
 fi
 
@@ -97,7 +98,7 @@ else
 
         if [ "$ANDROID_VERSION" = "O-MR1" ]; then 
                 cd configs 
-                patch < ../configs/patches/ConfigsTurnOnQTA.patch
+                patch -p1 < ../patches/ConfigsTurnOnQTA.patch
                 cd ..   
         fi      
 fi
