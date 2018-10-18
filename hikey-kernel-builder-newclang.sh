@@ -18,7 +18,7 @@ set -ex
 export TOOLCHAIN="clang-r339409b"
 export nproc=9
 export ANDROID_VERSION="O-MR1"
-export REFERENCE_BUILD="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
+export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
 export KERNEL_DIR="hikey-linaro"
 
 while [ "$1" != "" ]; do
@@ -145,8 +145,8 @@ export CROSS_COMPILE=aarch64-linux-gnu-
 
 cd "$KERNEL_DIR"
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-	if [ "$VERSION" == "4.14" ]; then
-		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base-arm64.config
+	if [ "$VERSION" = "4.14" ]; then
+		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	else
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base-arm64.config
 	fi
@@ -162,12 +162,13 @@ cd ..
 wget -q https://android-git.linaro.org/platform/system/core.git/plain/mkbootimg/mkbootimg.py -O mkbootimg
 wget -q ${REFERENCE_BUILD_URL}/ramdisk.img -O ramdisk.img
 
-#   --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image.gz-dtb \
+#   --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image.gz-dtb 
 python mkbootimg \
   --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb \
   --cmdline console="${CMD}" \
   --os_version O \
   --os_patch_level 2016-11-05 \
-  --ramdisk "$REFERENCE_BUILD"/ramdisk.img \
+  --ramdisk ./ramdisk.img \
   --output boot.img
 
+#
