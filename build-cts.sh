@@ -27,24 +27,32 @@ while [ "$1" != "" ]; do
     shift
 done
 
-repo init -u ${ANDROID_MANIFEST_URL} -b ${MANIFEST_BRANCH}
-repo sync -j"$(nproc)" -c
 rm -rf out/
+if [ "$skipdownloads" = "1" ]; then
+	repo sync -j"$(nproc)" -c
+else
+	repo init -u ${ANDROID_MANIFEST_URL} -b ${MANIFEST_BRANCH}
+	repo sync -j"$(nproc)" -c
 
-mkdir -p pub
-repo manifest -r -o pub/pinned-manifest.xml
+	mkdir -p pub
+	repo manifest -r -o pub/pinned-manifest.xml
 
-wget https://people.linaro.org:~tom.gall/patches/AddLKFTCTSPlan.patch -O AddLKFTCTSPlan.patch
-patch < AddLKFTCTSPlan.patch
-mv cts-lkft.xml tools/cts-tradefed/res/config/.
+	wget https://people.linaro.org/~tom.gall/patches/AddLKFTCTSPlan.patch -O AddLKFTCTSPlan.patch
+	wget https://people.linaro.org/~tom.gall/patches/FixFcntlBuffer.patch -O FixFcntlBuffer.patch
+	patch -p1 < AddLKFTCTSPlan.patch
+	cd bionic
+	patch -p1 < ../FixFcntlBuffer.patch
+	cd ..
 
-if [ -n "$PATCHSETS" ]; then
-    rm -rf android-patchsets
-    git clone --depth=1 https://android-git.linaro.org/git/android-patchsets.git
-    for i in $PATCHSETS; do
-        sh ./android-patchsets/$i
-    done
 fi
+
+#if [ -n "$PATCHSETS" ]; then
+#    rm -rf android-patchsets
+#    git clone --depth=1 https://android-git.linaro.org/git/android-patchsets.git
+#    for i in $PATCHSETS; do
+#        sh ./android-patchsets/$i
+#    done
+#fi
 
 
 source build/envsetup.sh
