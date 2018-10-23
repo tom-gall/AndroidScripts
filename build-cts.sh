@@ -2,7 +2,8 @@
 export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
 
 export ANDROID_MANIFEST_URL="https://android.googlesource.com/platform/manifest"
-export MANIFEST_BRANCH="android-cts-8.1_r6"
+#export MANIFEST_BRANCH="android-cts-8.1_r6"
+export MANIFEST_BRANCH="android-cts-8.1_r10"
 export TOOLCHAIN="clang-4679922"
 export PATCHSETS="cts-lkft"
 export LUNCH_TARGET="aosp_arm64-userdebug"
@@ -16,7 +17,7 @@ while [ "$1" != "" ]; do
         -t | --toolchain )      shift
                                 export TOOLCHAIN=$1
                                 ;;
-        -s | --skipdownloads )  skipdownloads=1
+        -s | --skipdownloads )  export skipdownloads=1
                                 ;;
         -h | --help )           usage
                                 exit
@@ -29,7 +30,8 @@ done
 
 rm -rf out/
 if [ "$skipdownloads" = "1" ]; then
-	repo sync -j"$(nproc)" -c
+#	repo sync -j"$(nproc)" -c
+        echo skip
 else
 	repo init -u ${ANDROID_MANIFEST_URL} -b ${MANIFEST_BRANCH}
 	repo sync -j"$(nproc)" -c
@@ -39,7 +41,10 @@ else
 
 	wget https://people.linaro.org/~tom.gall/patches/AddLKFTCTSPlan.patch -O AddLKFTCTSPlan.patch
 	wget https://people.linaro.org/~tom.gall/patches/FixFcntlBuffer.patch -O FixFcntlBuffer.patch
+        
+        cd cts
 	patch -p1 < AddLKFTCTSPlan.patch
+        cd ..
 	cd bionic
 	patch -p1 < ../FixFcntlBuffer.patch
 	cd ..
@@ -58,5 +63,5 @@ fi
 source build/envsetup.sh
 lunch ${LUNCH_TARGET}
 make -j"$(nproc)" cts
-
+make adb
 
