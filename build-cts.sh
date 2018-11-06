@@ -17,6 +17,9 @@ while [ "$1" != "" ]; do
         -t | --toolchain )      shift
                                 export TOOLCHAIN=$1
                                 ;;
+        -b | --branch)          shift
+				export MANIFEST_BRANCH=$1
+				;;
         -s | --skipdownloads )  export skipdownloads=1
                                 ;;
         -h | --help )           usage
@@ -39,7 +42,11 @@ else
 	mkdir -p pub
 	repo manifest -r -o pub/pinned-manifest.xml
 
-	wget https://people.linaro.org/~tom.gall/patches/AddLKFTCTSPlan.patch -O AddLKFTCTSPlan.patch
+	if [ "$MANIFEST_BRANCH" = "android-cts-8.1_r10" ]; then
+		wget https://people.linaro.org/~tom.gall/patches/AddLKFTCTSPlan.patch -O AddLKFTCTSPlan.patch
+	elif [ "$MANIFEST_BRANCH" = "android-cts-9.0_r3" ]; then
+		wget https://people.linaro.org/~tom.gall/patches/AddLKFTCTSPlanV9.patch -O AddLKFTCTSPlan.patch
+	fi
 	wget https://people.linaro.org/~tom.gall/patches/FixFcntlBuffer.patch -O FixFcntlBuffer.patch
         
         cd cts
@@ -63,5 +70,7 @@ fi
 source build/envsetup.sh
 lunch ${LUNCH_TARGET}
 make -j"$(nproc)" cts
-make adb
+make -j"$(nproc)" adb
+make -j"$(nproc)" aapt
+
 
