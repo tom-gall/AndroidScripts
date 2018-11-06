@@ -26,7 +26,10 @@ export KERNEL_BRANCH=android-hikey-linaro-4.9
 while [ "$1" != "" ]; do
     case $1 in
         -v | --version )        shift
-                                VERSION=$1
+                                export VERSION=$1
+                                ;;
+        -a | --android )        shift
+                                export ANDROID_VERSION=$1
                                 ;;
         -i | --interactive )    interactive=1
                                 ;;
@@ -70,6 +73,11 @@ if [ "$ANDROID_VERSION" = "P" ]; then
 	export CONFIG_FRAGMENTS_PATH="p"
 fi
 
+if [ "$ANDROID_VERSION" = "O-MR1" ]; then
+	export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
+else
+	export REFERENCE_BUILD_URL="https://snapshots.linaro.org/android/android-lcr-reference-hikey-p/latest?dl=/android/android-lcr-reference-hikey-p/latest/"
+fi
 
 if [ "$skipdownloads" != "1" ]; then
 	git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
@@ -111,10 +119,15 @@ fi
 
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
-else
+fi
+
+if [ "$ANDROID_VERSION" = "O-MR1" ]; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/system/etc/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
 #    CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/system/etc/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug video=HDMI-A-1:1280x720@60"
+fi
 
+if [ "$ANDROID_VERSION" = "P" ]; then
+    CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
 fi
 
 if [ "$skipdownloads" = "1" ]; then
@@ -131,11 +144,15 @@ else
 	cd "$KERNEL_DIR"
 	git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
 	if [ "$VERSION" = "4.9" ]; then
-		git revert --no-edit bbab5cb8a5bd598af247d9eaf5a3033e7d12104e
+		if [ "$ANDROID_VERSION" = "O-MR1" ]; then
+			git revert --no-edit bbab5cb8a5bd598af247d9eaf5a3033e7d12104e
+		fi
 	fi
 	if [ "$VERSION" = "4.14" ]; then
-		git revert --no-edit 20ebc74d51a1542e4290abf5ac9e32b524f891d1
-		git revert --no-edit d0455063e17c07841eb40b8e755f4c9241506de5
+		if [ "$ANDROID_VERSION" = "O-MR1" ]; then
+			git revert --no-edit 20ebc74d51a1542e4290abf5ac9e32b524f891d1
+			git revert --no-edit d0455063e17c07841eb40b8e755f4c9241506de5
+		fi
 	fi
 fi
 cd ..
@@ -159,9 +176,16 @@ cp .config ../defconfig
 make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image-dtb
 
 cd ..
-wget -q https://android-git.linaro.org/platform/system/core.git/plain/mkbootimg/mkbootimg.py -O mkbootimg
-wget -q ${REFERENCE_BUILD_URL}/ramdisk.img -O ramdisk.img
+if [ "$skipdownloads" != "1" ]; then
+	wget -q https://android-git.linaro.org/platform/system/core.git/plain/mkbootimg/mkbootimg.py -O mkbootimg
+	wget -q ${REFERENCE_BUILD_URL}/ramdisk.img -O ramdisk.img
+fi
 
 
-python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline console="${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
+
+if [ "$ANDROID_VERSION" = "O-MR1" ]; then
+	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline console="${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
+else
+	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline console="${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
+fi
 #
