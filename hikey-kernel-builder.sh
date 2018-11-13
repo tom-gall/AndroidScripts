@@ -31,8 +31,6 @@ while [ "$1" != "" ]; do
         -a | --android )        shift
                                 export ANDROID_VERSION=$1
                                 ;;
-        -i | --interactive )    interactive=1
-                                ;;
         -t | --toolchain )      shift
                                 toolchain=$1
                                 ;;
@@ -50,16 +48,13 @@ done
 if [ "$VERSION" = "4.9" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.9
         export ANDROID_KERNEL_CONFIG_DIR="android-4.9"
-fi
-if [ "$VERSION" = "4.14" ]; then
+elif [ "$VERSION" = "4.14" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.14
         export ANDROID_KERNEL_CONFIG_DIR="android-4.14"
-fi
-if [ "$VERSION" = "4.19" ]; then
+elif [ "$VERSION" = "4.19" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.19
         export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
-fi
-if [ "$VERSION" = "4.4" ]; then
+elif [ "$VERSION" = "4.4" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.4
         export ANDROID_KERNEL_CONFIG_DIR="android-4.4"
 fi
@@ -68,15 +63,17 @@ fi
 
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 	export CONFIG_FRAGMENTS_PATH="o-mr1"
-fi
-if [ "$ANDROID_VERSION" = "P" ]; then
+elif [ "$ANDROID_VERSION" = "P" ]; then
 	export CONFIG_FRAGMENTS_PATH="p"
 fi
 
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 	export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
+elif [ "$ANDROID_VERSION" = "P" ]; then
+#	export REFERENCE_BUILD_URL="https://snapshots.linaro.org/android/android-lcr-reference-hikey-p/latest?dl=/android/android-lcr-reference-hikey-p/latest/"
+	export REFERENCE_BUILD_URL="http://people.linaro.org/~yongqin.liu/images/hikey/pie/"
 else
-	export REFERENCE_BUILD_URL="https://snapshots.linaro.org/android/android-lcr-reference-hikey-p/latest?dl=/android/android-lcr-reference-hikey-p/latest/"
+	echo "need AOSP master ref"
 fi
 
 if [ "$skipdownloads" != "1" ]; then
@@ -111,23 +108,17 @@ else
         fi      
 fi
 
-if [ "$interactive" = "1" ]; then
-	echo "interactive mode"
-else
-	export ANDROID_VERSION=$(echo $REFERENCE_BUILD_URL | awk -F"/" '{print$(NF-1)}')
-fi
-
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
-fi
-
-if [ "$ANDROID_VERSION" = "O-MR1" ]; then
+elif [ "$ANDROID_VERSION" = "O-MR1" ]; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/system/etc/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
 #    CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/system/etc/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug video=HDMI-A-1:1280x720@60"
-fi
 
-if [ "$ANDROID_VERSION" = "P" ]; then
+elif [ "$ANDROID_VERSION" = "P" ]; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
+
+else
+	echo "What Andoid Version are you running?"
 fi
 
 if [ "$skipdownloads" = "1" ]; then
@@ -164,6 +155,12 @@ export CROSS_COMPILE=aarch64-linux-android-
 cd "$KERNEL_DIR"
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 	if [ "$VERSION" = "4.14" ]; then
+		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
+	else
+		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base-arm64.config
+	fi
+elif [ "$ANDROID_VERSION" = "P" ]; then
+	if [ "$VERSION" = "4.19" ]; then
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	else
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base-arm64.config
