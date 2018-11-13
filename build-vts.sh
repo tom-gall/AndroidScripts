@@ -8,11 +8,8 @@ export TOOLCHAIN="clang-4679922"
 export LUNCH_TARGET="aosp_arm64-userdebug"
 export nproc=9
 
-
 while [ "$1" != "" ]; do
     case $1 in
-        -i | --interactive )    interactive=1
-                                ;;
         -t | --toolchain )      shift
                                 export TOOLCHAIN=$1
                                 ;;
@@ -29,6 +26,8 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
+
+echo "Default Branch for vts build is $MANIFEST_BRANCH"
 
 rm -rf out/
 if [ "$skipdownloads" = "1" ]; then
