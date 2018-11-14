@@ -45,14 +45,18 @@ else
 	elif [ "$MANIFEST_BRANCH" = "android-cts-9.0_r3" ]; then
 		wget https://people.linaro.org/~tom.gall/patches/AddLKFTCTSPlanV9.patch -O AddLKFTCTSPlan.patch
 	fi
-	wget https://people.linaro.org/~tom.gall/patches/FixFcntlBuffer.patch -O FixFcntlBuffer.patch
+	wget https://people.linaro.org/~tom.gall/patches/fcntl-p-fix.patch -O fcntl-p-fix.patch
+	wget https://people.linaro.org/~tom.gall/patches/8a8d4ef.diff -O 8a8d4ef.diff
         
         cd cts
 	patch -p1 < AddLKFTCTSPlan.patch
         cd ..
 	cd bionic
-	patch -p1 < ../FixFcntlBuffer.patch
+	patch -p1 < ../fcntl-p-fix.patch
 	cd ..
+	cd system/sepolicy
+	patch -p1 --dry-run < ../../8a8d4ef.diff
+	cd ../..
 
 fi
 
