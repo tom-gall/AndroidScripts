@@ -12,8 +12,6 @@ export nproc=9
 
 while [ "$1" != "" ]; do
     case $1 in
-        -i | --interactive )    interactive=1
-                                ;;
         -t | --toolchain )      shift
                                 export TOOLCHAIN=$1
                                 ;;
