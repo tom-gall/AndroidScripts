@@ -118,6 +118,8 @@ elif [ "$ANDROID_VERSION" = "O-MR1" ]; then
 
 elif [ "$ANDROID_VERSION" = "P" ]; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
+elif [ "$VERSION" = "4.19" ]; then
+    CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
 
 else
 	echo "What Andoid Version are you running?"
