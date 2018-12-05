@@ -3,10 +3,11 @@
 
 usage()
 {
-	echo "usage: -i [-s] -v=[4.4|4.9|4.14]"
-	echo "-i = interactive mode"
+	echo "usage: [-s] -v=[4.4|4.9|4.14] -a={AOSP|P|O-MR1} -t=clang-4679922"
 	echo "-s = skip download"
 	echo "-v = kernel version"
+	echo "-a = android version"
+	echo "-t = toolchain to use from prebuilts"
 }
 
 
@@ -54,6 +55,7 @@ elif [ "$VERSION" = "4.14" ]; then
 elif [ "$VERSION" = "4.19" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.19
         export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
+	export TOOLCHAIN="clang-r346389"
 elif [ "$VERSION" = "4.4" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.4
         export ANDROID_KERNEL_CONFIG_DIR="android-4.4"
@@ -131,6 +133,14 @@ if [ "$skipdownloads" = "1" ]; then
 	git pull
 	
 else
+
+if [ "$VERSION" = "4.19" ]; then
+	git clone https://git.linaro.org/people/john.stultz/android-dev.git
+	mv android-dev hikey-linaro
+	cd "$KERNEL_DIR"
+        git checkout -b experimental/android-hikey-linaro-4.19 origin/experimental/android-hikey-linaro-4.19
+	
+else
 	git clone https://android.googlesource.com/kernel/hikey-linaro
 	cd "$KERNEL_DIR"
 	git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
@@ -145,6 +155,8 @@ else
 			git revert --no-edit d0455063e17c07841eb40b8e755f4c9241506de5
 		fi
 	fi
+
+fi
 fi
 cd ..
 
@@ -170,7 +182,15 @@ else
 fi 
 
 cp .config ../defconfig
+
+if [ "$VERSION" = "4.19" ]; then
+make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image
+make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) dtbs
+cat arch/arm64/boot/Image arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb > arch/arm64/boot/Image-dtb
+
+else
 make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image-dtb
+fi
 
 cd ..
 if [ "$skipdownloads" != "1" ]; then
