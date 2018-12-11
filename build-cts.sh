@@ -47,15 +47,17 @@ else
 	fi
 	wget https://people.linaro.org/~tom.gall/patches/fcntl-p-fix.patch -O fcntl-p-fix.patch
 	wget https://people.linaro.org/~tom.gall/patches/8a8d4ef.diff -O 8a8d4ef.diff
+	wget https://people.linaro.org/~tom.gall/patches/2b957f4.diff -O 2b957f4.diff
         
         cd cts
-	patch -p1 < AddLKFTCTSPlan.patch
+	patch -p1 < ../AddLKFTCTSPlan.patch
+	patch -p1 < ../2b957f4.diff
         cd ..
 	cd bionic
 	patch -p1 < ../fcntl-p-fix.patch
 	cd ..
 	cd system/sepolicy
-	patch -p1 --dry-run < ../../8a8d4ef.diff
+	patch -p1 < ../../8a8d4ef.diff
 	cd ../..
 
 fi
