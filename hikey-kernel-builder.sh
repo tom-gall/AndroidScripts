@@ -8,13 +8,14 @@ usage()
 	echo "-v = kernel version"
 	echo "-a = android version"
 	echo "-t = toolchain to use from prebuilts"
+	echo "-m = mirror build, use premerge mirror"
 }
 
 
 set -ex
 
-export TOOLCHAIN="clang-4679922"
-# export TOOLCHAIN="clang-r339409b"
+# export TOOLCHAIN="clang-4679922"
+export TOOLCHAIN="clang-r346389b"
 export nproc=9
 export ANDROID_VERSION="O-MR1"
 export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
@@ -37,6 +38,8 @@ while [ "$1" != "" ]; do
                                 ;;
         -s | --skipdownloads )  skipdownloads=1
                                 ;;
+        -m | --mirror-build )   mirrorbuild=1
+                                ;;
         -h | --help )           usage
                                 exit
                                 ;;
@@ -49,16 +52,28 @@ done
 if [ "$VERSION" = "4.9" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.9
         export ANDROID_KERNEL_CONFIG_DIR="android-4.9"
+	if [ "$mirrorbuild" == "1" ]; then
+		export KERNEL_BRANCH=mirror-android-4.9
+	fi
 elif [ "$VERSION" = "4.14" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.14
         export ANDROID_KERNEL_CONFIG_DIR="android-4.14"
+	if [ "$mirrorbuild" == "1" ]; then
+		export KERNEL_BRANCH=mirror-android-4.14
+	fi
 elif [ "$VERSION" = "4.19" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.19
         export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
-	export TOOLCHAIN="clang-r346389"
+	export TOOLCHAIN="clang-r346389b"
+	if [ "$mirrorbuild" == "1" ]; then
+		export KERNEL_BRANCH=mirror-android-4.19
+	fi
 elif [ "$VERSION" = "4.4" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.4
         export ANDROID_KERNEL_CONFIG_DIR="android-4.4"
+	if [ "$mirrorbuild" == "1" ]; then
+		export KERNEL_BRANCH=mirror-android-4.4
+	fi
 fi
 
 # android-4.14  android-4.4  android-4.9  o  o-mr1 p 
@@ -112,13 +127,18 @@ fi
 
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
+elif [ "$VERSION" = "4.19" ]; then
+    CMD="console=ttyAMA3 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
+    # CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
+
+    # console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime  printk.devkmsg=on buildvariant=userdebug
+
+
 elif [ "$ANDROID_VERSION" = "O-MR1" ]; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/system/etc/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
 #    CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/system/etc/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug video=HDMI-A-1:1280x720@60"
 
 elif [ "$ANDROID_VERSION" = "P" ]; then
-    CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
-elif [ "$VERSION" = "4.19" ]; then
     CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
 
 else
@@ -150,7 +170,10 @@ else
 		if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 			git revert --no-edit bbab5cb8a5bd598af247d9eaf5a3033e7d12104e
 		fi
-	fi
+		if [ "$mirrorbuild" == "1" ]; then
+			cp ~/hikey_defconfig arch/arm64/configs/.
+		fi
+ 	fi
 	if [ "$VERSION" = "4.14" ]; then
 		if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 			git revert --no-edit 20ebc74d51a1542e4290abf5ac9e32b524f891d1
@@ -186,12 +209,11 @@ fi
 cp .config ../defconfig
 
 if [ "$VERSION" = "4.19" ]; then
-make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image
-make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) dtbs
-cat arch/arm64/boot/Image arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb > arch/arm64/boot/Image-dtb
-
+	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image
+	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) dtbs
+	cat arch/arm64/boot/Image arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb > arch/arm64/boot/Image-dtb
 else
-make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image-dtb
+	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image-dtb
 fi
 
 cd ..
@@ -203,8 +225,8 @@ fi
 
 
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline console="${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
+	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
 else
-	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline console="${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
+	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
 fi
 #
