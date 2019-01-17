@@ -53,26 +53,26 @@ if [ "$VERSION" = "4.9" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.9
         export ANDROID_KERNEL_CONFIG_DIR="android-4.9"
 	if [ "$mirrorbuild" == "1" ]; then
-		export KERNEL_BRANCH=mirror-android-4.9
+		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.9
 	fi
 elif [ "$VERSION" = "4.14" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.14
         export ANDROID_KERNEL_CONFIG_DIR="android-4.14"
 	if [ "$mirrorbuild" == "1" ]; then
-		export KERNEL_BRANCH=mirror-android-4.14
+		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.14
 	fi
 elif [ "$VERSION" = "4.19" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.19
         export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
 	export TOOLCHAIN="clang-r346389b"
 	if [ "$mirrorbuild" == "1" ]; then
-		export KERNEL_BRANCH=mirror-android-4.19
+		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.19
 	fi
 elif [ "$VERSION" = "4.4" ]; then
 	export KERNEL_BRANCH=android-hikey-linaro-4.4
         export ANDROID_KERNEL_CONFIG_DIR="android-4.4"
 	if [ "$mirrorbuild" == "1" ]; then
-		export KERNEL_BRANCH=mirror-android-4.4
+		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.4
 	fi
 fi
 
@@ -105,10 +105,6 @@ if [ "$skipdownloads" != "1" ]; then
 	cd patches
 	wget -r -np -nH -R index.html --cut-dirs=2 http://people.linaro.org/~tom.gall/patches/
         cd ..   
-fi
-
-if echo "${JOB_NAME}" | grep premerge; then
-   git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
 fi
 
 if [ "$skipdownloads" = "1" ]; then
@@ -147,6 +143,9 @@ fi
 
 if [ "$skipdownloads" = "1" ]; then
 	cd "$KERNEL_DIR"
+	if [ "$mirrorbuild" == "1" ]; then
+   		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
+	fi
 	make mrproper
 	git checkout master
 	git clean -fd
@@ -166,6 +165,9 @@ else
 	git clone https://android.googlesource.com/kernel/hikey-linaro
 	cd "$KERNEL_DIR"
 	git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
+	if [ "$mirrorbuild" == "1" ]; then
+   		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
+	fi
 	if [ "$VERSION" = "4.9" ]; then
 		if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 			git revert --no-edit bbab5cb8a5bd598af247d9eaf5a3033e7d12104e
