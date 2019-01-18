@@ -20,6 +20,8 @@ export nproc=9
 export ANDROID_VERSION="O-MR1"
 export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
 export KERNEL_DIR="hikey-linaro"
+export C_COMPILER="clang"
+export usegcc="0"
 # android-hikey-linaro-4.9
 # android-hikey-linaro-4.14
 # checkout -b android-hikey-linaro-4.9 origin/android-hikey-linaro-4.9
@@ -39,6 +41,8 @@ while [ "$1" != "" ]; do
         -s | --skipdownloads )  skipdownloads=1
                                 ;;
         -m | --mirror-build )   mirrorbuild=1
+                                ;;
+        -g | --gcc )            usegcc=1
                                 ;;
         -h | --help )           usage
                                 exit
@@ -124,7 +128,8 @@ fi
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
 elif [ "$VERSION" = "4.19" ]; then
-    CMD="console=ttyAMA3 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
+    CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
+    # this one works  CMD="console=ttyAMA3 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
     # CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
 
     # console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime  printk.devkmsg=on buildvariant=userdebug
@@ -155,13 +160,13 @@ if [ "$skipdownloads" = "1" ]; then
 	
 else
 
-if [ "$VERSION" = "4.19" ]; then
-	git clone https://git.linaro.org/people/john.stultz/android-dev.git
-	mv android-dev hikey-linaro
-	cd "$KERNEL_DIR"
-        git checkout -b experimental/android-hikey-linaro-4.19 origin/experimental/android-hikey-linaro-4.19
+# if [ "$VERSION" = "4.19" ]; then
+#	git clone https://git.linaro.org/people/john.stultz/android-dev.git
+#	mv android-dev hikey-linaro
+# 	cd "$KERNEL_DIR"
+#        git checkout -b experimental/android-hikey-linaro-4.19 origin/experimental/android-hikey-linaro-4.19
 	
-else
+# else
 	git clone https://android.googlesource.com/kernel/hikey-linaro
 	cd "$KERNEL_DIR"
 	git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
@@ -183,11 +188,11 @@ else
 		fi
 	fi
 
-fi
+# fi
 fi
 cd ..
 
-
+ 
 export CLANG_TRIPLE=aarch64-linux-gnu-
 export CROSS_COMPILE=aarch64-linux-android-
 
@@ -210,9 +215,16 @@ fi
 
 cp .config ../defconfig
 
+
+if [ "$usegcc" = "1" ]; then
+        export C_COMPILER=gcc
+fi
+
 if [ "$VERSION" = "4.19" ]; then
-	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image
-	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) dtbs
+	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) Image
+	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) dtbs
+	# make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image
+	# make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) dtbs
 	cat arch/arm64/boot/Image arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb > arch/arm64/boot/Image-dtb
 else
 	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image-dtb
