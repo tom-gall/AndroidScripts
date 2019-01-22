@@ -15,7 +15,8 @@ usage()
 set -ex
 
 # export TOOLCHAIN="clang-4679922"
-export TOOLCHAIN="clang-r346389b"
+# export TOOLCHAIN="clang-r346389b"
+export TOOLCHAIN="clang-r346389c"
 export nproc=9
 export ANDROID_VERSION="O-MR1"
 export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
@@ -152,21 +153,14 @@ if [ "$skipdownloads" = "1" ]; then
    		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
 	fi
 	make mrproper
-	git checkout master
-	git clean -fd
-	git pull
-	git checkout "$KERNEL_BRANCH"
-	git pull
+#	git checkout master
+#	git clean -fd
+#	git pull
+#	git checkout "$KERNEL_BRANCH"
+#	git pull
 	
 else
 
-# if [ "$VERSION" = "4.19" ]; then
-#	git clone https://git.linaro.org/people/john.stultz/android-dev.git
-#	mv android-dev hikey-linaro
-# 	cd "$KERNEL_DIR"
-#        git checkout -b experimental/android-hikey-linaro-4.19 origin/experimental/android-hikey-linaro-4.19
-	
-# else
 	git clone https://android.googlesource.com/kernel/hikey-linaro
 	cd "$KERNEL_DIR"
 	git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
@@ -188,7 +182,6 @@ else
 		fi
 	fi
 
-# fi
 fi
 cd ..
 
