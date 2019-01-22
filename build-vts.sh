@@ -8,6 +8,7 @@ export TOOLCHAIN="clang-r346389c"
 # export PATCHSETS="cts-lkft"
 export LUNCH_TARGET="aosp_arm64-userdebug"
 export nproc=9
+export latest=0
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -18,6 +19,8 @@ while [ "$1" != "" ]; do
 				export MANIFEST_BRANCH=$1
 				;;
         -s | --skipdownloads )  export skipdownloads=1
+                                ;;
+        -l | --latest )         export latest=1
                                 ;;
         -h | --help )           usage
                                 exit
