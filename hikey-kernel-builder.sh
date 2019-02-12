@@ -165,14 +165,17 @@ else
 	cd "$KERNEL_DIR"
 	git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
 	if [ "$mirrorbuild" == "1" ]; then
-   		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
+		cp arch/arm64/configs/hikey_defconfig ../.
 	fi
+
+	if [ "$mirrorbuild" == "1" ]; then
+   		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
+		cp ../hikey_defconfig arch/arm64/configs/.
+	fi
+
 	if [ "$VERSION" = "4.9" ]; then
 		if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 			git revert --no-edit bbab5cb8a5bd598af247d9eaf5a3033e7d12104e
-		fi
-		if [ "$mirrorbuild" == "1" ]; then
-			cp ~/hikey_defconfig arch/arm64/configs/.
 		fi
  	fi
 	if [ "$VERSION" = "4.14" ]; then
