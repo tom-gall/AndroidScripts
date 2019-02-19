@@ -16,7 +16,8 @@ set -ex
 
 # export TOOLCHAIN="clang-4679922"
 # export TOOLCHAIN="clang-r346389b"
-export TOOLCHAIN="clang-r346389c"
+#export TOOLCHAIN="clang-r346389c"
+export TOOLCHAIN="clang-r349610"
 export nproc=9
 export ANDROID_VERSION="O-MR1"
 export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
@@ -171,6 +172,7 @@ else
 	if [ "$mirrorbuild" == "1" ]; then
    		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
 		cp ../hikey_defconfig arch/arm64/configs/.
+		#patch -p1 < ~/ee7ead2.diff
 	fi
 
 	if [ "$VERSION" = "4.9" ]; then
