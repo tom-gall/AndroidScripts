@@ -3,7 +3,7 @@
 
 usage()
 {
-	echo "usage: [-s] -v=[4.4|4.9|4.14] -a={AOSP|P|O-MR1} -t=clang-4679922"
+	echo "usage: [-s] -v=[4.4|4.9|4.14|v4.19] -a={AOSP|P|O-MR1} -t=clang-r349610"
 	echo "-s = skip download"
 	echo "-v = kernel version"
 	echo "-a = android version"
@@ -15,11 +15,9 @@ usage()
 set -ex
 
 # export TOOLCHAIN="clang-4679922"
-# export TOOLCHAIN="clang-r346389b"
-#export TOOLCHAIN="clang-r346389c"
 export TOOLCHAIN="clang-r349610"
 export nproc=9
-export ANDROID_VERSION="O-MR1"
+export ANDROID_VERSION="P"
 export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
 export KERNEL_DIR="hikey-linaro"
 export C_COMPILER="clang"
