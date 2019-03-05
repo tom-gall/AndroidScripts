@@ -18,6 +18,7 @@ set -ex
 export TOOLCHAIN="clang-r349610"
 export nproc=9
 export ANDROID_VERSION="P"
+export PASTRY_BUILD=1
 export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
 export KERNEL_DIR="hikey-linaro"
 export C_COMPILER="clang"
@@ -95,6 +96,7 @@ elif [ "$ANDROID_VERSION" = "P" ]; then
 	export REFERENCE_BUILD_URL="http://people.linaro.org/~yongqin.liu/images/hikey/pie/"
 else
 	echo "need AOSP master ref"
+	export PASTRY_BUILD=0
 fi
 
 if [ "$skipdownloads" != "1" ]; then
@@ -122,7 +124,8 @@ else
                 cd configs 
                 patch -p1 < ../patches/ConfigsTurnOnQTA.patch
                 cd ..   
-        fi      
+        fi 
+	git clone https://github.com/tom-gall/LinaroAndroidKernelConfigs.git   
 fi
 
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
@@ -161,6 +164,16 @@ if [ "$skipdownloads" = "1" ]; then
 else
 
 	git clone https://android.googlesource.com/kernel/hikey-linaro
+
+	if [ "$PASTRY_BUILD" = "1" ]; then
+		git clone https://android.googlesource.com/kernel/common
+		cd common
+		# create backwards delta when letter branch
+		export ll_ANDROID_VERSION=echo "${ANDROID_VERSION,,}"
+		git diff origin/android-$VERSION origin/android-$VERSION-"${ANDROID_VERSION,,}" > ../downgrade.patch
+		cd ..
+	fi
+
 	cd "$KERNEL_DIR"
 	git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
 	if [ "$mirrorbuild" == "1" ]; then
@@ -184,6 +197,9 @@ else
 			git revert --no-edit d0455063e17c07841eb40b8e755f4c9241506de5
 		fi
 	fi
+	if [ "$PASTRY_BUILD" = "1" ]; then
+		patch -p1 < ../downgrade.patch
+	fi
 
 fi
 cd ..
@@ -193,21 +209,15 @@ export CLANG_TRIPLE=aarch64-linux-gnu-
 export CROSS_COMPILE=aarch64-linux-android-
 
 cd "$KERNEL_DIR"
+
+# copy kernel config for any version besides AOSP
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-	if [ "$VERSION" = "4.14" ]; then
-		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
-	else
-		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base-arm64.config
-	fi
+	cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
 elif [ "$ANDROID_VERSION" = "P" ]; then
-	if [ "$VERSION" = "4.19" ]; then
-		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
-	else
-		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base-arm64.config
-	fi
+	cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
 else
 	ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
-fi 
+fi
 
 cp .config ../defconfig
 
