@@ -9,6 +9,7 @@ usage()
 	echo "-a = android version"
 	echo "-t = toolchain to use from prebuilts"
 	echo "-m = mirror build, use premerge mirror"
+	echo "-c = continue build, no download, no reconfig, just build"
 }
 
 
@@ -46,6 +47,9 @@ while [ "$1" != "" ]; do
         -m | --mirror-build )   mirrorbuild=1
                                 ;;
         -g | --gcc )            usegcc=1
+                                ;;
+        -c | --continue )       cont=1
+				skipdownloads=1
                                 ;;
         -h | --help )           usage
                                 exit
@@ -145,8 +149,9 @@ fi
 #        fi 
 
 
+if [ "$skipdownloads" != "1" ]; then 
 	git clone https://github.com/tom-gall/LinaroAndroidKernelConfigs.git   
-#fi
+fi
 
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
@@ -166,15 +171,20 @@ elif [ "$ANDROID_VERSION" = "P" ]; then
     CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
 
 else
-	echo "What Andoid Version are you running?"
+	echo "What Andoid Version are you planning to run?"
 fi
 
 if [ "$skipdownloads" = "1" ]; then
 	cd "$KERNEL_DIR"
-	if [ "$mirrorbuild" == "1" ]; then
-   		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
+	if [ "$cont" = "1" ]; then
+		# nothing to do
+		echo "nothing to do"
+	else
+		if [ "$mirrorbuild" == "1" ]; then
+   			git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
+		fi
+		make mrproper
 	fi
-	make mrproper
 #	git checkout master
 #	git clean -fd
 #	git pull
@@ -234,15 +244,17 @@ export CROSS_COMPILE=aarch64-linux-android-
 
 cd "$KERNEL_DIR"
 
-# copy kernel config for any version besides AOSP
-if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-	cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
-elif [ "$VERSION" = "4.19" ]; then
-	ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
-elif [ "$ANDROID_VERSION" = "P" ]; then
-	cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
-else # AOSP BUILD
-	ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
+if [ "$cont" != "1" ]; then
+	# copy kernel config for any version besides AOSP
+	if [ "$ANDROID_VERSION" = "O-MR1" ]; then
+		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
+	elif [ "$VERSION" = "4.19" ]; then
+		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
+	elif [ "$ANDROID_VERSION" = "P" ]; then
+		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
+	else # AOSP BUILD
+		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
+	fi
 fi
 
 cp .config ../defconfig
