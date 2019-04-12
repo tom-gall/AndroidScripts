@@ -8,7 +8,6 @@ usage()
 	echo "-v = kernel version"
 	echo "-a = android version"
 	echo "-t = toolchain to use from prebuilts"
-	echo "-m = mirror build, use premerge mirror"
 	echo "-c = continue build, no download, no reconfig, just build"
 }
 
@@ -44,8 +43,6 @@ while [ "$1" != "" ]; do
                                 ;;
         -s | --skipdownloads )  skipdownloads=1
                                 ;;
-        -m | --mirror-build )   mirrorbuild=1
-                                ;;
         -g | --gcc )            usegcc=1
                                 ;;
         -c | --continue )       cont=1
@@ -67,9 +64,6 @@ if [ "$VERSION" = "4.9" ]; then
 		export KERNEL_BRANCH=android-4.9
 	fi
         export ANDROID_KERNEL_CONFIG_DIR="android-4.9"
-	if [ "$mirrorbuild" == "1" ]; then
-		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.9
-	fi
 elif [ "$VERSION" = "4.14" ]; then
 	if [ "$ANDROID_VERSION" = "AOSP" ]; then
 		export KERNEL_BRANCH=android-hikey-linaro-4.14
@@ -77,17 +71,11 @@ elif [ "$VERSION" = "4.14" ]; then
 		export KERNEL_BRANCH=android-4.14
 	fi
         export ANDROID_KERNEL_CONFIG_DIR="android-4.14"
-	if [ "$mirrorbuild" == "1" ]; then
-		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.14
-	fi
 elif [ "$VERSION" = "4.19" ]; then
 	# 4.19 for now is not associated with any pastry
 	export KERNEL_BRANCH=android-hikey-linaro-4.19
         export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
 	export PASTRY_BUILD=0
-	if [ "$mirrorbuild" == "1" ]; then
-		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.19
-	fi
 elif [ "$VERSION" = "4.4" ]; then
 	if [ "$ANDROID_VERSION" = "AOSP" ]; then
 		export KERNEL_BRANCH=android-hikey-linaro-4.4
@@ -95,9 +83,6 @@ elif [ "$VERSION" = "4.4" ]; then
 		export KERNEL_BRANCH=android-4.4
 	fi
         export ANDROID_KERNEL_CONFIG_DIR="android-4.4"
-	if [ "$mirrorbuild" == "1" ]; then
-		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.4
-	fi
 fi
 
 # android-4.14  android-4.4  android-4.9  p 
@@ -159,9 +144,6 @@ if [ "$skipdownloads" = "1" ]; then
 		# nothing to do
 		echo "nothing to do"
 	else
-		if [ "$mirrorbuild" == "1" ]; then
-   			git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
-		fi
 		make mrproper
 	fi
 #	git checkout master
@@ -191,16 +173,6 @@ else
 		fi
 	else
 		git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
-	fi
-
-	if [ "$mirrorbuild" == "1" ]; then
-		cp arch/arm64/configs/hikey_defconfig ../.
-	fi
-
-	if [ "$mirrorbuild" == "1" ]; then
-   		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
-		cp ../hikey_defconfig arch/arm64/configs/.
-		#patch -p1 < ~/ee7ead2.diff
 	fi
 
 fi
