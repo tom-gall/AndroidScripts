@@ -106,9 +106,7 @@ if [ "$ANDROID_VERSION" = "P" ]; then
 	export CONFIG_FRAGMENTS_PATH="p"
 fi
 
-if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-	export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
-elif [ "$ANDROID_VERSION" = "P" ]; then
+if [ "$ANDROID_VERSION" = "P" ]; then
 #	export REFERENCE_BUILD_URL="https://snapshots.linaro.org/android/android-lcr-reference-hikey-p/latest?dl=/android/android-lcr-reference-hikey-p/latest/"
 	export REFERENCE_BUILD_URL="http://people.linaro.org/~yongqin.liu/images/hikey/pie/"
 else
@@ -133,20 +131,6 @@ if [ "$skipdownloads" != "1" ]; then
         cd ..   
 fi
 
-#if [ "$skipdownloads" = "1" ]; then
-#	cd configs
-#	git pull
-#	cd ..
-#else
-#	git clone --depth=1 https://android.googlesource.com/kernel/configs
-#
-#        if [ "$ANDROID_VERSION" = "O-MR1" ]; then 
-#                cd configs 
-#                patch -p1 < ../patches/ConfigsTurnOnQTA.patch
-#                cd ..   
-#        fi 
-
-
 if [ "$skipdownloads" != "1" ]; then 
 	git clone https://github.com/tom-gall/LinaroAndroidKernelConfigs.git   
 fi
@@ -161,9 +145,6 @@ elif [ "$VERSION" = "4.19" ]; then
     # console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime  printk.devkmsg=on buildvariant=userdebug
 
 
-elif [ "$ANDROID_VERSION" = "O-MR1" ]; then
-    CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/system/etc/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
-#    CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/system/etc/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug video=HDMI-A-1:1280x720@60"
 
 elif [ "$ANDROID_VERSION" = "P" ]; then
     CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
@@ -222,17 +203,6 @@ else
 		#patch -p1 < ~/ee7ead2.diff
 	fi
 
-	if [ "$VERSION" = "4.9" ]; then
-		if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-			git revert --no-edit bbab5cb8a5bd598af247d9eaf5a3033e7d12104e
-		fi
- 	fi
-	if [ "$VERSION" = "4.14" ]; then
-		if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-			git revert --no-edit 20ebc74d51a1542e4290abf5ac9e32b524f891d1
-			git revert --no-edit d0455063e17c07841eb40b8e755f4c9241506de5
-		fi
-	fi
 fi
 cd ..
 
@@ -244,9 +214,7 @@ cd "$KERNEL_DIR"
 
 if [ "$cont" != "1" ]; then
 	# copy kernel config for any version besides AOSP
-	if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
-	elif [ "$VERSION" = "4.19" ]; then
+	if [ "$VERSION" = "4.19" ]; then
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	elif [ "$ANDROID_VERSION" = "P" ]; then
 		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
@@ -280,9 +248,6 @@ fi
 
 
 
-if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
-else
 	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
-fi
 #
+
