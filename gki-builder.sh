@@ -57,6 +57,8 @@ while [ "$1" != "" ]; do
     shift
 done
 
+export ROOTPATH=${PWD}
+
 if [ "$VERSION" = "4.9" ]; then
 	if [ "$ANDROID_VERSION" = "AOSP" ]; then
 		export KERNEL_BRANCH=android-hikey-linaro-4.9
@@ -146,6 +148,8 @@ if [ "$skipdownloads" = "1" ]; then
 	else
 		make mrproper
 	fi
+  	cd ..
+
 #	git checkout master
 #	git clean -fd
 #	git pull
@@ -153,6 +157,12 @@ if [ "$skipdownloads" = "1" ]; then
 #	git pull
 	
 else
+	if [ "$cont" != "1" ]; then
+		mkdir -p images
+	fi
+	# populate those here 
+	#
+
 
 	if [ "$PASTRY_BUILD" = "1" ]; then
 		if [ "$VERSION" = "4.19" ]; then
@@ -174,20 +184,31 @@ else
 	else
 		git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
 	fi
-
+	cd ..
 fi
-cd ..
 
  
 export CLANG_TRIPLE=aarch64-linux-gnu-
 export CROSS_COMPILE=aarch64-linux-android-
+
+# setup vendor.img and ramdisk.img
+cd images
+	if [ "$cont" != "1" ]; then
+		mkdir -p v
+	fi
+#	mkdir -p r
+	simg2img vendor.img vendor.raw
+	sudo mount -t ext4 -o loop vendor.raw v
+	cd ..	
+
 
 cd "$KERNEL_DIR"
 
 if [ "$cont" != "1" ]; then
 	# copy kernel config for any version besides AOSP
 	if [ "$VERSION" = "4.19" ]; then
-		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
+		# ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
+		cp arch/arm64/configs/hikey_defconfig .config
 	elif [ "$ANDROID_VERSION" = "P" ]; then
 		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
 	else # AOSP BUILD
@@ -203,13 +224,19 @@ if [ "$usegcc" = "1" ]; then
 fi
 
 if [ "$VERSION" = "4.19" ]; then
+	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" oldconfig  
+	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) prepare
 	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) Image
 	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) dtbs
 	# make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image
 	# make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) dtbs
 	cat arch/arm64/boot/Image arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb > arch/arm64/boot/Image-dtb
+	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) modules
+	sudo make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) modules_install INSTALL_MOD_PATH=${ROOTPATH}/images/v/ V=1
 else
 	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image-dtb
+	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) modules
+	sudo make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) modules_install INSTALL_MOD_PATH=${ROOTPATH}/images/v/ V=1
 fi
 
 cd ..
@@ -218,7 +245,15 @@ if [ "$skipdownloads" != "1" ]; then
 	wget -q ${REFERENCE_BUILD_URL}/ramdisk.img -O ramdisk.img
 fi
 
+# now package
+	cd images
+	# sudo ./make_ext4fs -s -l 1024M -a vendor new.vendor.img v/
+	# sudo /lkft/tgall/960/out/soong/host/linux-x86/bin/make_f2fs -S 822083584  -l vendor vendor.new
+	sudo umount ./v
+	img2simg vendor.raw vendor.new.img
 
+##	umount ./r
+	cd ..
 
 	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
 #
