@@ -140,7 +140,11 @@ fi
 #	git pull
 #	cd ..
 #else
-#	git clone --depth=1 https://android.googlesource.com/kernel/configs
+if [ "$skipdownloads" != "1" ]; then
+	if [ "$VERSION" = "4.19" ]; then
+		git clone --depth=1 https://android.googlesource.com/kernel/configs
+	fi
+fi
 #
 #        if [ "$ANDROID_VERSION" = "O-MR1" ]; then 
 #                cd configs 
@@ -249,7 +253,7 @@ if [ "$cont" != "1" ]; then
 	if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
 	elif [ "$VERSION" = "4.19" ]; then
-		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
+		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	elif [ "$ANDROID_VERSION" = "P" ]; then
 		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
 	else # AOSP BUILD
@@ -277,14 +281,14 @@ fi
 cd ..
 if [ "$skipdownloads" != "1" ]; then
 	wget -q https://android-git.linaro.org/platform/system/core.git/plain/mkbootimg/mkbootimg.py -O mkbootimg
-	wget -q ${REFERENCE_BUILD_URL}/ramdisk.img -O ramdisk.img
+	chmod +x mkbootimg
+	wget -q http://releases.linaro.org/android/reference-lcr/hikey/9.0-19.01/ramdisk.img
+#	wget -q ${REFERENCE_BUILD_URL}/ramdisk.img -O ramdisk.img
 fi
 
-
-
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
+	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
 else
-	python mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
+	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
 fi
 #
