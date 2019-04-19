@@ -16,7 +16,9 @@ usage()
 set -ex
 
 # export TOOLCHAIN="clang-4679922"
-export TOOLCHAIN="clang-r349610"
+# export TOOLCHAIN="clang-r349610b"
+# March clang
+export TOOLCHAIN="clang-r353983b"
 export nproc=9
 export ANDROID_VERSION="P"
 export PASTRY_BUILD=1
@@ -51,6 +53,8 @@ while [ "$1" != "" ]; do
         -c | --continue )       cont=1
 				skipdownloads=1
                                 ;;
+        -i | --side )           side=1
+				;;
         -h | --help )           usage
                                 exit
                                 ;;
@@ -128,6 +132,17 @@ fi
 
 export PATH=${PWD}/aarch64-linux-android-4.9/bin/:${PWD}/linux-x86/${TOOLCHAIN}/bin/:${PATH}
 
+if [ "$skipdownloads" != "1" ]; then
+	wget -q https://android-git.linaro.org/platform/system/core.git/plain/mkbootimg/mkbootimg.py -O mkbootimg
+	chmod +x mkbootimg
+	wget -q http://releases.linaro.org/android/reference-lcr/hikey/9.0-19.01/ramdisk.img
+fi
+
+
+if [ "$usegcc" = "1" ]; then 
+	export PATH=/opt/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu/bin:${PATH}
+fi
+
 if [ "$skipdownloads" != "1" ]; then 
         mkdir patches 
 	cd patches
@@ -196,26 +211,33 @@ if [ "$skipdownloads" = "1" ]; then
 #	git pull
 	
 else
+	if [ "$side" = "1" ]; then
+		cp -r ~/git/hikey-linaro .
+		cd "$KERNEL_DIR"
+	else
 
-	if [ "$PASTRY_BUILD" = "1" ]; then
-		if [ "$VERSION" = "4.19" ]; then
+		if [ "$PASTRY_BUILD" = "1" ]; then
+			if [ "$VERSION" = "4.19" ]; then
+				git clone https://android.googlesource.com/kernel/hikey-linaro
+			else
+				git clone https://github.com/tom-gall/hikey-linaro.git
+			fi
+		else
 			git clone https://android.googlesource.com/kernel/hikey-linaro
-		else
-			git clone https://github.com/tom-gall/hikey-linaro.git
 		fi
-	else
-		git clone https://android.googlesource.com/kernel/hikey-linaro
-	fi
 
-	cd "$KERNEL_DIR"
-	if [ "$PASTRY_BUILD" = "1" ]; then
-		if [ "$VERSION" = "4.19" ]; then
-			git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
+		cd "$KERNEL_DIR"
+		if [ "$PASTRY_BUILD" = "1" ]; then
+			if [ "$VERSION" = "4.19" ]; then
+				git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
+			else
+				git checkout -b "$KERNEL_BRANCH"-"${ANDROID_VERSION,,}"-hikey origin/"$KERNEL_BRANCH"-"${ANDROID_VERSION,,}"-hikey
+			fi
 		else
-			git checkout -b "$KERNEL_BRANCH"-"${ANDROID_VERSION,,}"-hikey origin/"$KERNEL_BRANCH"-"${ANDROID_VERSION,,}"-hikey
+			git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
 		fi
-	else
-		git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
+
+	### side
 	fi
 
 	if [ "$mirrorbuild" == "1" ]; then
@@ -255,6 +277,7 @@ if [ "$cont" != "1" ]; then
 	elif [ "$VERSION" = "4.19" ]; then
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	elif [ "$ANDROID_VERSION" = "P" ]; then
+#		cp arch/arm64/configs/hikey_defconfig .config
 		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
 	else # AOSP BUILD
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
@@ -276,19 +299,15 @@ if [ "$VERSION" = "4.19" ]; then
 	cat arch/arm64/boot/Image arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb > arch/arm64/boot/Image-dtb
 else
 	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image-dtb
+#	make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image.gz-dtb
 fi
 
 cd ..
-if [ "$skipdownloads" != "1" ]; then
-	wget -q https://android-git.linaro.org/platform/system/core.git/plain/mkbootimg/mkbootimg.py -O mkbootimg
-	chmod +x mkbootimg
-	wget -q http://releases.linaro.org/android/reference-lcr/hikey/9.0-19.01/ramdisk.img
-#	wget -q ${REFERENCE_BUILD_URL}/ramdisk.img -O ramdisk.img
-fi
 
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
 else
+#	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image.gz-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
 	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
 fi
 #
