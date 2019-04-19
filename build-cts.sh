@@ -4,6 +4,7 @@ export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
 export ANDROID_MANIFEST_URL="https://android.googlesource.com/platform/manifest"
 #export MANIFEST_BRANCH="android-cts-8.1_r6"
 export MANIFEST_BRANCH="android-cts-8.1_r10"
+export MANIFEST_BRANCH="android-cts-9.0_r7"
 export TOOLCHAIN="clang-4679922"
 export PATCHSETS="cts-lkft"
 export LUNCH_TARGET="aosp_arm64-userdebug"
@@ -42,7 +43,7 @@ else
 
 	if [ "$MANIFEST_BRANCH" = "android-cts-8.1_r10" ]; then
 		wget https://people.linaro.org/~tom.gall/patches/AddLKFTCTSPlan.patch -O AddLKFTCTSPlan.patch
-	elif [ "$MANIFEST_BRANCH" = "android-cts-9.0_r3" ]; then
+	elif [ "$MANIFEST_BRANCH" = "android-cts-9.0_r7" ]; then
 		wget https://people.linaro.org/~tom.gall/patches/AddLKFTCTSPlanV9.patch -O AddLKFTCTSPlan.patch
 	fi
 	wget https://people.linaro.org/~tom.gall/patches/fcntl-p-fix.patch -O fcntl-p-fix.patch
