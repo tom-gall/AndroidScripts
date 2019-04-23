@@ -2,8 +2,10 @@
 export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
 
 export ANDROID_MANIFEST_URL="https://android.googlesource.com/platform/manifest"
-export MANIFEST_BRANCH="android-vts-9.0_r5"
-export TOOLCHAIN="clang-r346389c"
+#export MANIFEST_BRANCH="android-vts-9.0_r5"
+export MANIFEST_BRANCH="android-vts-9.0_r8"
+#export TOOLCHAIN="clang-r346389c"
+export TOOLCHAIN="clang-r353983b"
 export LUNCH_TARGET="aosp_arm64-userdebug"
 export nproc=9
 export latest=0
