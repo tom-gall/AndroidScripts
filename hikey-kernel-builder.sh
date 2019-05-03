@@ -3,7 +3,7 @@
 
 usage()
 {
-	echo "usage: [-s] -v=[4.4|4.9|4.14|v4.19] -a={AOSP|P|O-MR1} -t=clang-r349610"
+	echo "usage: [-s] -v=[4.4|4.9|4.14|v4.19] -a={AOSP|Q|P|O-MR1} -t=clang-r349610"
 	echo "-s = skip download"
 	echo "-v = kernel version"
 	echo "-a = android version"
@@ -85,10 +85,15 @@ elif [ "$VERSION" = "4.14" ]; then
 		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.14
 	fi
 elif [ "$VERSION" = "4.19" ]; then
-	# 4.19 for now is not associated with any pastry
-	export KERNEL_BRANCH=android-hikey-linaro-4.19
-        export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
-	export PASTRY_BUILD=0
+	if [ "$ANDROID_VERSION" = "AOSP" ]; then
+		export KERNEL_BRANCH=android-hikey-linaro-4.19
+	else
+		export KERNEL_BRANCH=android-4.19
+	fi
+#        export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
+#	export KERNEL_BRANCH=android-hikey-linaro-4.19
+#        export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
+#	export PASTRY_BUILD=0
 	if [ "$mirrorbuild" == "1" ]; then
 		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.19
 	fi
@@ -115,8 +120,10 @@ fi
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 	export REFERENCE_BUILD_URL="http://testdata.linaro.org/lkft/aosp-stable/android-8.1.0_r29/"
 elif [ "$ANDROID_VERSION" = "P" ]; then
-#	export REFERENCE_BUILD_URL="https://snapshots.linaro.org/android/android-lcr-reference-hikey-p/latest?dl=/android/android-lcr-reference-hikey-p/latest/"
-	export REFERENCE_BUILD_URL="http://people.linaro.org/~yongqin.liu/images/hikey/pie/"
+	export REFERENCE_BUILD_URL="https://snapshots.linaro.org/android/android-lcr-reference-hikey-p/latest/"
+#	export REFERENCE_BUILD_URL="http://people.linaro.org/~yongqin.liu/images/hikey/pie/"
+elif [ "$ANDROID_VERSION" = "Q" ]; then
+	export REFERENCE_BUILD_URL="https://snapshots.linaro.org/android/android-lcr-reference-hikey-p/latest/"
 else
 	echo "need AOSP master ref"
 	export PASTRY_BUILD=0
@@ -155,11 +162,11 @@ fi
 #	git pull
 #	cd ..
 #else
-if [ "$skipdownloads" != "1" ]; then
-	if [ "$VERSION" = "4.19" ]; then
-		git clone --depth=1 https://android.googlesource.com/kernel/configs
-	fi
-fi
+#if [ "$skipdownloads" != "1" ]; then
+#	if [ "$VERSION" = "4.19" ]; then
+#		git clone --depth=1 https://android.googlesource.com/kernel/configs
+#	fi
+#fi
 #
 #        if [ "$ANDROID_VERSION" = "O-MR1" ]; then 
 #                cd configs 
@@ -174,6 +181,8 @@ fi
 
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
+elif [ "$ANDROID_VERSION" = "Q" ]; then
+    CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
 elif [ "$VERSION" = "4.19" ]; then
     CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
     # this one works  CMD="console=ttyAMA3 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
@@ -274,6 +283,8 @@ if [ "$cont" != "1" ]; then
 	# copy kernel config for any version besides AOSP
 	if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
+	elif [ "$ANDROID_VERSION" = "Q" ]; then
+		make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" hikey_defconfig
 	elif [ "$VERSION" = "4.19" ]; then
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	elif [ "$ANDROID_VERSION" = "P" ]; then
