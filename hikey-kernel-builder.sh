@@ -18,7 +18,7 @@ set -ex
 # export TOOLCHAIN="clang-4679922"
 # export TOOLCHAIN="clang-r349610b"
 # March clang
-export TOOLCHAIN="clang-r353983b"
+export TOOLCHAIN="clang-r353983c"
 export nproc=9
 export ANDROID_VERSION="P"
 export PASTRY_BUILD=1
@@ -107,6 +107,8 @@ elif [ "$VERSION" = "4.4" ]; then
 	if [ "$mirrorbuild" == "1" ]; then
 		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.4
 	fi
+elif [ "$VERSION" = "mainline" ]; then
+	export KERNEL_BRANCH=android-mainline
 fi
 
 # android-4.14  android-4.4  android-4.9  o  o-mr1 p 
@@ -182,7 +184,7 @@ fi
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
 elif [ "$ANDROID_VERSION" = "Q" ]; then
-    CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
+    CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab_v2 rootwait ro init=/init root=/dev/dm-0 dm=\"system none ro,0 1 android-verity 179:9\" androidboot.verifiedbootstate=orange printk.devkmsg=on buildvariant=userdebug veritykeyid=id:7e4333f9bba00adfe0ede979e28ed1920492b40f"
 elif [ "$VERSION" = "4.19" ]; then
     CMD="console=ttyAMA3,115200 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab initrd=0x11000000,0x17E28A"
     # this one works  CMD="console=ttyAMA3 androidboot.console=ttyAMA3 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug"
@@ -288,8 +290,9 @@ if [ "$cont" != "1" ]; then
 	elif [ "$VERSION" = "4.19" ]; then
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	elif [ "$ANDROID_VERSION" = "P" ]; then
+		make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" hikey_defconfig
 #		cp arch/arm64/configs/hikey_defconfig .config
-		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
+#		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
 	else # AOSP BUILD
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	fi
@@ -308,6 +311,11 @@ if [ "$VERSION" = "4.19" ]; then
 	# make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image
 	# make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) dtbs
 	cat arch/arm64/boot/Image arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb > arch/arm64/boot/Image-dtb
+
+elif [ "$VERSION" = "mainline" ]; then
+	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) Image
+	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) dtbs
+	cat arch/arm64/boot/Image arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb > arch/arm64/boot/Image-dtb
 else
 	make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image-dtb
 #	make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image.gz-dtb
@@ -317,6 +325,8 @@ cd ..
 
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
+elif [ "$ANDROID_VERSION" = "Q" ]; then
+	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version Q --os_patch_level 2019-03-05 --ramdisk ./ramdisk.img --output boot.img
 else
 #	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image.gz-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
 	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
