@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 usage()
 {
 	echo "usage: [-s] -v=[4.4|4.9|4.14|v4.19] -a={AOSP|Q|P|O-MR1} -t=clang-r349610"
@@ -13,12 +12,10 @@ usage()
 }
 
 
-set -ex
-
 # export TOOLCHAIN="clang-4679922"
 # export TOOLCHAIN="clang-r349610b"
 # March clang
-export TOOLCHAIN="clang-r353983c"
+export TOOLCHAIN="clang-r353983d"
 export nproc=9
 export ANDROID_VERSION="P"
 export PASTRY_BUILD=1
@@ -141,9 +138,12 @@ fi
 
 export PATH=${PWD}/aarch64-linux-android-4.9/bin/:${PWD}/linux-x86/${TOOLCHAIN}/bin/:${PATH}
 
+
+set -x
+
 if [ "$skipdownloads" != "1" ]; then
-	wget -q https://android-git.linaro.org/platform/system/core.git/plain/mkbootimg/mkbootimg.py -O mkbootimg
-	chmod +x mkbootimg
+#	wget -q https://android-git.linaro.org/platform/system/core.git/plain/mkbootimg/mkbootimg.py -O mkbootimg
+#	chmod +x mkbootimg
 	wget -q http://releases.linaro.org/android/reference-lcr/hikey/9.0-19.01/ramdisk.img
 fi
 
@@ -159,27 +159,9 @@ if [ "$skipdownloads" != "1" ]; then
         cd ..   
 fi
 
-#if [ "$skipdownloads" = "1" ]; then
-#	cd configs
-#	git pull
-#	cd ..
-#else
-#if [ "$skipdownloads" != "1" ]; then
-#	if [ "$VERSION" = "4.19" ]; then
-#		git clone --depth=1 https://android.googlesource.com/kernel/configs
-#	fi
+#if [ "$skipdownloads" != "1" ]; then 
+#	git clone https://github.com/tom-gall/LinaroAndroidKernelConfigs.git   
 #fi
-#
-#        if [ "$ANDROID_VERSION" = "O-MR1" ]; then 
-#                cd configs 
-#                patch -p1 < ../patches/ConfigsTurnOnQTA.patch
-#                cd ..   
-#        fi 
-
-
-if [ "$skipdownloads" != "1" ]; then 
-	git clone https://github.com/tom-gall/LinaroAndroidKernelConfigs.git   
-fi
 
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
@@ -324,11 +306,11 @@ fi
 cd ..
 
 if [ "$ANDROID_VERSION" = "O-MR1" ]; then
-	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
+	mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version O --os_patch_level 2016-11-05 --ramdisk ./ramdisk.img --output boot.img
 elif [ "$ANDROID_VERSION" = "Q" ]; then
-	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version Q --os_patch_level 2019-03-05 --ramdisk ./ramdisk.img --output boot.img
+	mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version Q --os_patch_level 2019-03-05 --ramdisk ./ramdisk.img --output boot.img
 else
-#	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image.gz-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
-	./mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
+#	mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image.gz-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
+	mkbootimg --kernel ${PWD}/"$KERNEL_DIR"/arch/arm64/boot/Image-dtb --cmdline "${CMD}" --os_version P --os_patch_level 2018-09-01 --ramdisk ./ramdisk.img --output boot.img
 fi
 #
