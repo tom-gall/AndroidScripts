@@ -3,9 +3,9 @@ export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
 
 export ANDROID_MANIFEST_URL="https://android.googlesource.com/platform/manifest"
 #export MANIFEST_BRANCH="android-vts-9.0_r5"
-export MANIFEST_BRANCH="android-vts-9.0_r8"
+export MANIFEST_BRANCH="android-vts-9.0_r9"
 #export TOOLCHAIN="clang-r346389c"
-export TOOLCHAIN="clang-r353983b"
+export TOOLCHAIN="clang-r353983c"
 export LUNCH_TARGET="aosp_arm64-userdebug"
 export nproc=9
 export latest=0
@@ -59,13 +59,17 @@ source build/envsetup.sh
 lunch ${LUNCH_TARGET}
 
 if [ "$latest" = "1" ]; then
-
+  if [ "$skipdownloads" != "1" ]; then
    cd external/ltp
    git checkout master
    cd ../..
    cd system/core
    git cherry-pick c3d4e7226a74c3c4092480606ef07e0d30a2d42d
    cd ../..
+#   cd external/ltp/
+#   android/tools/gen_android_build.sh
+   cd ../..
+  fi
 fi
 
 make -j"$(nproc)" vts
