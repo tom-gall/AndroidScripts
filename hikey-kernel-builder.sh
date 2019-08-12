@@ -2,7 +2,7 @@
 
 usage()
 {
-	echo "usage: [-s] -v=[4.4|4.9|4.14|v4.19] -a={AOSP|Q|P|O-MR1} -t=clang-r349610"
+	echo "usage: [-s] -v=[4.4|4.9|4.14|v4.19] -a={AOSP|Q|P|O-MR1} -t=clang-r349610 -b=[hikey|960]"
 	echo "-s = skip download"
 	echo "-v = kernel version"
 	echo "-a = android version"
@@ -12,10 +12,9 @@ usage()
 }
 
 
-# export TOOLCHAIN="clang-4679922"
 # export TOOLCHAIN="clang-r349610b"
 # March clang
-export TOOLCHAIN="clang-r353983d"
+export TOOLCHAIN="clang-r353983e"
 export nproc=9
 export ANDROID_VERSION="P"
 export PASTRY_BUILD=1
@@ -32,6 +31,9 @@ export usegcc="0"
 
 while [ "$1" != "" ]; do
     case $1 in
+        -b | --board )          shift
+                                export BOARD=$1
+                                ;;
         -v | --version )        shift
                                 export VERSION=$1
                                 ;;
@@ -42,8 +44,6 @@ while [ "$1" != "" ]; do
                                 toolchain=$1
                                 ;;
         -s | --skipdownloads )  skipdownloads=1
-                                ;;
-        -m | --mirror-build )   mirrorbuild=1
                                 ;;
         -g | --gcc )            usegcc=1
                                 ;;
@@ -68,9 +68,6 @@ if [ "$VERSION" = "4.9" ]; then
 		export KERNEL_BRANCH=android-4.9
 	fi
         export ANDROID_KERNEL_CONFIG_DIR="android-4.9"
-	if [ "$mirrorbuild" == "1" ]; then
-		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.9
-	fi
 elif [ "$VERSION" = "4.14" ]; then
 	if [ "$ANDROID_VERSION" = "AOSP" ]; then
 		export KERNEL_BRANCH=android-hikey-linaro-4.14
@@ -78,12 +75,12 @@ elif [ "$VERSION" = "4.14" ]; then
 		export KERNEL_BRANCH=android-4.14
 	fi
         export ANDROID_KERNEL_CONFIG_DIR="android-4.14"
-	if [ "$mirrorbuild" == "1" ]; then
-		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.14
-	fi
 elif [ "$VERSION" = "4.19" ]; then
 	if [ "$ANDROID_VERSION" = "AOSP" ]; then
 		export KERNEL_BRANCH=android-hikey-linaro-4.19
+        elif [ "$ANDROID_VERSION" = "Q" ]; then
+		export KERNEL_BRANCH=android-4.19
+                export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
 	else
 		export KERNEL_BRANCH=android-4.19
 	fi
@@ -91,9 +88,6 @@ elif [ "$VERSION" = "4.19" ]; then
 #	export KERNEL_BRANCH=android-hikey-linaro-4.19
 #        export ANDROID_KERNEL_CONFIG_DIR="android-4.19"
 #	export PASTRY_BUILD=0
-	if [ "$mirrorbuild" == "1" ]; then
-		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.19
-	fi
 elif [ "$VERSION" = "4.4" ]; then
 	if [ "$ANDROID_VERSION" = "AOSP" ]; then
 		export KERNEL_BRANCH=android-hikey-linaro-4.4
@@ -101,9 +95,6 @@ elif [ "$VERSION" = "4.4" ]; then
 		export KERNEL_BRANCH=android-4.4
 	fi
         export ANDROID_KERNEL_CONFIG_DIR="android-4.4"
-	if [ "$mirrorbuild" == "1" ]; then
-		export UPSTREAM_KERNEL_BRANCH=mirror-android-4.4
-	fi
 elif [ "$VERSION" = "mainline" ]; then
 	export KERNEL_BRANCH=android-mainline
 fi
@@ -163,6 +154,10 @@ fi
 #	git clone https://github.com/tom-gall/LinaroAndroidKernelConfigs.git   
 #fi
 
+if [ "$BOARD" = "960" ]; then
+    CMD = "androidboot.hardware=hikey960 firmware_class.path=/vendor/firmware efi=noruntime init=/init androidboot.boot_devices=soc/ff3b0000.ufs loglevel=15 buildvariant=userdebug console=ttyAMA6 "
+
+else
 if echo "$ANDROID_VERSION" | grep -i aosp ; then
     CMD="androidboot.console=ttyFIQ0 androidboot.hardware=hikey firmware_class.path=/vendor/firmware efi=noruntime printk.devkmsg=on buildvariant=userdebug  overlay_mgr.overlay_dt_entry=hardware_cfg_enable_android_fstab video=HDMI-A-1:1280x720@60"
 elif [ "$ANDROID_VERSION" = "Q" ]; then
@@ -185,6 +180,8 @@ elif [ "$ANDROID_VERSION" = "P" ]; then
 else
 	echo "What Andoid Version are you planning to run?"
 fi
+fi 
+#### set command line
 
 if [ "$skipdownloads" = "1" ]; then
 	cd "$KERNEL_DIR"
@@ -192,9 +189,6 @@ if [ "$skipdownloads" = "1" ]; then
 		# nothing to do
 		echo "nothing to do"
 	else
-		if [ "$mirrorbuild" == "1" ]; then
-   			git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
-		fi
 		make mrproper
 	fi
 #	git checkout master
@@ -211,7 +205,11 @@ else
 
 		if [ "$PASTRY_BUILD" = "1" ]; then
 			if [ "$VERSION" = "4.19" ]; then
+                            if [ "$ANDROID_VERSION" = "P" ]; then
 				git clone https://android.googlesource.com/kernel/hikey-linaro
+			    else
+				git clone https://github.com/tom-gall/hikey-linaro.git
+                            fi
 			else
 				git clone https://github.com/tom-gall/hikey-linaro.git
 			fi
@@ -222,7 +220,11 @@ else
 		cd "$KERNEL_DIR"
 		if [ "$PASTRY_BUILD" = "1" ]; then
 			if [ "$VERSION" = "4.19" ]; then
+                            if [ "$ANDROID_VERSION" = "P" ]; then
 				git checkout -b "$KERNEL_BRANCH" origin/"$KERNEL_BRANCH"
+                            else
+				git checkout -b "$KERNEL_BRANCH"-"${ANDROID_VERSION,,}"-hikey origin/"$KERNEL_BRANCH"-"${ANDROID_VERSION,,}"-hikey
+                            fi
 			else
 				git checkout -b "$KERNEL_BRANCH"-"${ANDROID_VERSION,,}"-hikey origin/"$KERNEL_BRANCH"-"${ANDROID_VERSION,,}"-hikey
 			fi
@@ -231,16 +233,6 @@ else
 		fi
 
 	### side
-	fi
-
-	if [ "$mirrorbuild" == "1" ]; then
-		cp arch/arm64/configs/hikey_defconfig ../.
-	fi
-
-	if [ "$mirrorbuild" == "1" ]; then
-   		git merge --no-edit remotes/origin/${UPSTREAM_KERNEL_BRANCH}
-		cp ../hikey_defconfig arch/arm64/configs/.
-		#patch -p1 < ~/ee7ead2.diff
 	fi
 
 	if [ "$VERSION" = "4.9" ]; then
@@ -264,6 +256,11 @@ export CROSS_COMPILE=aarch64-linux-android-
 cd "$KERNEL_DIR"
 
 if [ "$cont" != "1" ]; then
+
+	if [ "$BOARD" = "960" ]; then
+		make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" hikey960_defconfig
+        else
+
 	# copy kernel config for any version besides AOSP
 	if [ "$ANDROID_VERSION" = "O-MR1" ]; then
 		cp ../LinaroAndroidKernelConfigs/${ANDROID_VERSION}/${VERSION}/hikey_defconfig .config
@@ -278,6 +275,7 @@ if [ "$cont" != "1" ]; then
 	else # AOSP BUILD
 		ARCH=arm64 scripts/kconfig/merge_config.sh arch/arm64/configs/hikey_defconfig ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-base.config ../configs/${CONFIG_FRAGMENTS_PATH}/${ANDROID_KERNEL_CONFIG_DIR}/android-recommended-arm64.config
 	fi
+        fi
 fi
 
 cp .config ../defconfig
@@ -288,7 +286,7 @@ if [ "$usegcc" = "1" ]; then
 fi
 
 if [ "$VERSION" = "4.19" ]; then
-	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) Image
+	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) Image-dtb
 	make ARCH=arm64 CC="${C_COMPILER}" HOSTCC="${C_COMPILER}" -j$(nproc) dtbs
 	# make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) Image
 	# make ARCH=arm64 CC=clang HOSTCC=clang -j$(nproc) dtbs
